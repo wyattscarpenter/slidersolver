@@ -1,4 +1,4 @@
-# Solves a 2x3 slide puzzle
+# Solves a 3x3 slide puzzle
 
 h = 3
 w = 3
@@ -13,7 +13,7 @@ def v(b, i, j):
     #678
     return (b[j] == 0 and i >= 0 and j >= 0 and i < h*w and j<h*w and (
         (j == i+1 and i+1%w != 0) or
-        (j == i+1 and i%w != 0) or
+        (j == i-1 and i%w != 0) or
         (j == i+w) or
         (j == i-w)
     ))
@@ -39,7 +39,7 @@ def f(b, parent=False):
     else:
         #print(b)
         reachable_states.append(b)
-        parents[b] = parent
+        #parents[b] = parent
         return True
 
 f(board)
@@ -55,5 +55,3 @@ while len(gen) != 0:
                     next_gen.append(c)
     gen = next_gen
     print(len(reachable_states))
-print(reachable_states)
-print(len(reachable_states))
