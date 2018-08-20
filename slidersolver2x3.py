@@ -3,7 +3,7 @@
 h = 3
 w = 3
 
-board  = (1,2,3,4,8,6,5,0,9)
+board  = (1,2,3,4,7,6,5,0,8)
 s = (1,2,3,4,0,5,6,7,8)
 
 def v(b, i, j):
@@ -51,8 +51,8 @@ while len(gen) != 0:
             j = b.index(0)
             if v(b, i, j):
                 c = swappedcopy(b,i,j)
-                f(c,b)
-                next_gen.append(c)
+                if f(c,b):
+                    next_gen.append(c)
     gen = next_gen
     print(len(reachable_states))
 print(reachable_states)
