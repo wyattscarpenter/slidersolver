@@ -40,7 +40,7 @@ int bsmartinsert(board b){
   for(; i<boards_length; i++){
     if(beq(boards[i],b)){return 0;}
   }
-  if(boards_length>MAX_BOARDS){
+  if(boards_length>=MAX_BOARDS){
     puts("boards length exceeded (this is theoretically impossible, check code correctness)");
     exit(1);
   }
