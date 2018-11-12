@@ -1,73 +1,89 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 #define HEIGHT 3
 #define WIDTH 3
+#define SIZE HEIGHT*WIDTH
 typedef unsigned char byte;
-typedef byte board[HEIGHT*WIDTH]; //this will decay to a pointer, mind!
 #define MAX_BOARDS 362880 //9 factorial
-board boards[MAX_BOARDS]; 
+byte * boards[MAX_BOARDS]; 
 int boards_length = 0;
+int old_gen_mark = 0;
 
 //0 is free space, index is eventual order disregarding space
-board initial = {1,2,3,0,4,5,6,7,8};
-board desired = {0,2,3,1,4,5,6,7,8};
+byte initial[] = {1,2,3,0,4,5,6,7,8};
+byte desired[] = {0,2,3,1,4,5,6,7,8};
 
-int beq(board r, board l){//test if boards equal
-  for(int i = 0; i<sizeof(board);i++){
+int bprint(byte * b){
+  //just gonna hardcode this one lads
+  return printf("-------\n|%d %d %d|\n|%d %d %d|\n|%d %d %d|\n-------\n",
+		b[0],b[1],b[2],b[3],b[4],b[5],b[6],b[7],b[8]
+		);
+}
+
+int beq(byte * r, byte * l){//test if boards equal
+  for(int i = 0; i<SIZE;i++){
     if(r[i]!=l[i]){return 0;}
   }
   return 1;
 }
 
-int bz(board b){//return free space of board
+int bz(const byte * b){//return free space of board
   int i = 0;
-  while(b[i] && i<sizeof(board)){
+  while(b[i] && i<SIZE){
     i++;
   }
   return i;
 }
 
-void bcpy(board dst, board src){ //since boards always pass by reference, this fn is necessary.
-  for(int i = 0; i<sizeof(board);i++){
+void bcpy(byte * dst, const byte * src){ //since boards always pass by reference, this fn is necessary.
+  for(int i = 0; i<SIZE;i++){
     dst[i]=src[i];
   }
 }
 
-int bsmartinsert(board b){
+int bsmartinsert(byte * b){
   //returns 0 (false) if no insertion was made, new length (!=0, true) otherwise
-  int i = 0;
-  for(; i<boards_length; i++){
-    if(beq(boards[i],b)){return 0;}
+  if(!b){
+    return 0;
+  } else if(beq(b, desired)){
+    bprint(b);
+    exit(EXIT_SUCCESS);
+  } else {
+    int i = 0;
+    for(; i<boards_length; i++){
+      if(beq(boards[i],b)){return 0;}
+    }
+    if(boards_length>=MAX_BOARDS){
+      puts("boards length exceeded (this is theoretically impossible, check code correctness)");
+      exit(EXIT_FAILURE);
+    }
+    bcpy(boards[i],b);
+    return ++boards_length;
   }
-  if(boards_length>=MAX_BOARDS){
-    puts("boards length exceeded (this is theoretically impossible, check code correctness)");
-    exit(1);
-  }
-  bcpy(boards[i],b);
-  return ++boards_length;
 }
 
-board * make_move(board old, board * new, int from_index, int to_index){
-  if (from_index < sizeof(board) && from_index >= 0 &&
-      to_index < sizeof(board) && to_index >= 0 &&
+byte * make_move(const byte * old, byte * new, int from_index, int to_index){
+  if (from_index < SIZE && from_index >= 0 &&
+      to_index < SIZE && to_index >= 0 &&
       old[from_index] == 0 &&
       (from_index == to_index+WIDTH ||
        from_index == to_index-WIDTH ||
-       (from_index/WIDTH !=0 && from_index == to_index+1) ||
-       (from_index/WIDTH !=1 && from_index == to_index-1)
+       ((from_index+1)/WIDTH !=0 && from_index == to_index+1) ||
+       ((to_index+1)/WIDTH !=0 && to_index == from_index+1)
        )
       ){
-    bcpy(*new,old);
-    *new[to_index] = old[from_index];
-    *new[from_index] = 0;
+    bcpy(new,old);
+    new[from_index] = old[to_index]; //move the non-zero back
+    new[to_index] = old[from_index]; //put the zero in 
     return new;
   }
-  //error condition
+  new = NULL;
   return NULL;
 }
 
-void make_moves(board old, board * up, board * down, board * left, board * right){//given a board, returns by pointer the result of moving the free space the indicated direction (or null if impossible)
+void make_moves(const byte * old, byte * up, byte * down, byte * left, byte * right){//given a board, returns by pointer the result of moving the free space the indicated direction (or null if impossible)
   int z = bz(old);
   make_move(old,up,z,z-WIDTH);
   make_move(old,down,z,z+WIDTH);
@@ -75,23 +91,61 @@ void make_moves(board old, board * up, board * down, board * left, board * right
   make_move(old,right,z,z+1);
 }
 
-int rl(board b){ //rl stands for "recursive loop". or maybe for "rl", I forget which
-  board u;
-  board d;
-  board l;
-  board r;
-  if(!b){
-    return 0;
+void il(){ //il stands for "iterative loop".
+  byte u[SIZE];
+  byte * up = u;
+  byte d[SIZE];
+  byte * dp = d;
+  byte l[SIZE];
+  byte * lp = l;
+  byte r[SIZE];
+  byte * rp = r;
+  
+  while(old_gen_mark++ < boards_length){
+    make_moves(boards[old_gen_mark],up,dp,lp,rp);
+    bsmartinsert(up);
+    bsmartinsert(dp);
+    bsmartinsert(lp);
+    bsmartinsert(rp);
   }
-  if(beq(b, desired)){
-    return 1;
-  }
-  if(bsmartinsert(b)){
-    make_moves(b,&u,&d,&l,&r);
-  }
-  return (rl(u) || rl(d) || rl(l) || rl(r));
+}
+
+int assertions(){
+  assert(beq(initial, initial));
+  assert(beq(desired, desired));
+  assert(!beq(initial, desired));
+  
+  byte b[] = {1,2,3,4,0,5,6,7,8};
+  byte c[SIZE];
+  bcpy(c,b);
+  assert(beq(b,c));
+
+  assert(bz(b) == 4);
+  
+  byte u[SIZE];
+  byte ud[] = {1,0,3,4,2,5,6,7,8};
+  byte d[SIZE];
+  byte dd[] = {1,2,3,4,7,5,6,0,8};
+  byte l[SIZE];
+  byte ld[] = {1,2,3,0,4,5,6,7,8};
+  byte r[SIZE];
+  byte rd[] = {1,2,3,4,5,0,6,7,8};
+  make_moves(b,u,d,l,r);
+  bprint(u);
+  bprint(ud);
+  assert(beq(u,ud));
+  assert(beq(d,dd));
+  assert(beq(l,ld));
+  bprint(r);
+  bprint(rd);
+  assert(beq(r,rd));
+  
+  return 1;
 }
 
 int main(int argc, char ** argv){
-  return rl(initial);
+  assertions();
+  bsmartinsert(initial);
+  old_gen_mark = 0;
+  while(1){il();}
 }
