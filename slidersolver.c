@@ -7,7 +7,7 @@
 #define SIZE HEIGHT*WIDTH
 typedef unsigned char byte;
 #define MAX_BOARDS 362880 //9 factorial
-byte * boards[MAX_BOARDS]; 
+byte boards[SIZE][MAX_BOARDS]; 
 int boards_length = 0;
 int old_gen_mark = 0;
 
@@ -30,6 +30,7 @@ int beq(byte * r, byte * l){//test if boards equal
 }
 
 int bz(const byte * b){//return free space of board
+  if(!b){puts("null"); return -1;}
   int i = 0;
   while(b[i] && i<SIZE){
     i++;
@@ -38,6 +39,7 @@ int bz(const byte * b){//return free space of board
 }
 
 void bcpy(byte * dst, const byte * src){ //since boards always pass by reference, this fn is necessary.
+  if(!dst||!src){puts("null"); return;}
   for(int i = 0; i<SIZE;i++){
     dst[i]=src[i];
   }
@@ -52,8 +54,9 @@ int bsmartinsert(byte * b){
     exit(EXIT_SUCCESS);
   } else {
     int i = 0;
-    for(; i<boards_length; i++){
+    while(i<boards_length){
       if(beq(boards[i],b)){return 0;}
+      i++;
     }
     if(boards_length>=MAX_BOARDS){
       puts("boards length exceeded (this is theoretically impossible, check code correctness)");
@@ -65,22 +68,23 @@ int bsmartinsert(byte * b){
 }
 
 byte * make_move(const byte * old, byte * new, int from_index, int to_index){
+  bcpy(new,old);
+  //0 1 2
+  //3 4 5
+  //6 7 8
   if (from_index < SIZE && from_index >= 0 &&
       to_index < SIZE && to_index >= 0 &&
       old[from_index] == 0 &&
       (from_index == to_index+WIDTH ||
        from_index == to_index-WIDTH ||
-       ((from_index+1)/WIDTH !=0 && from_index == to_index+1) ||
-       ((to_index+1)/WIDTH !=0 && to_index == from_index+1)
+       ((from_index)%WIDTH !=0 && from_index == to_index+1) ||
+       ((to_index)%WIDTH !=0 && to_index == from_index+1)
        )
       ){
-    bcpy(new,old);
     new[from_index] = old[to_index]; //move the non-zero back
     new[to_index] = old[from_index]; //put the zero in 
-    return new;
   }
-  new = NULL;
-  return NULL;
+  return new;
 }
 
 void make_moves(const byte * old, byte * up, byte * down, byte * left, byte * right){//given a board, returns by pointer the result of moving the free space the indicated direction (or null if impossible)
@@ -93,20 +97,16 @@ void make_moves(const byte * old, byte * up, byte * down, byte * left, byte * ri
 
 void il(){ //il stands for "iterative loop".
   byte u[SIZE];
-  byte * up = u;
   byte d[SIZE];
-  byte * dp = d;
   byte l[SIZE];
-  byte * lp = l;
   byte r[SIZE];
-  byte * rp = r;
   
   while(old_gen_mark++ < boards_length){
-    make_moves(boards[old_gen_mark],up,dp,lp,rp);
-    bsmartinsert(up);
-    bsmartinsert(dp);
-    bsmartinsert(lp);
-    bsmartinsert(rp);
+    make_moves(boards[old_gen_mark],u,d,l,r);
+    bsmartinsert(u);
+    bsmartinsert(d);
+    bsmartinsert(l);
+    bsmartinsert(r);
   }
 }
 
@@ -147,5 +147,8 @@ int main(int argc, char ** argv){
   assertions();
   bsmartinsert(initial);
   old_gen_mark = 0;
-  while(1){il();}
+  boards_length = 1;
+  while(1){puts("loop!");il();}
+		      
+  return EXIT_SUCCESS;
 }
