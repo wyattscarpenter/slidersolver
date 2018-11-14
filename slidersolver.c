@@ -2,24 +2,37 @@
 #include <stdio.h>
 #include <assert.h>
 
+#define DEBUG 0
+#define dprintf(...) if(DEBUG){fprintf(stderr,__VA_ARGS__);}
+#define DOBUG(...) if(DEBUG){__VA_ARGS__;}
+
 #define HEIGHT 3
 #define WIDTH 3
 #define SIZE HEIGHT*WIDTH
 typedef unsigned char byte;
 #define MAX_BOARDS 362880 //9 factorial
-byte boards[SIZE][MAX_BOARDS]; 
-int boards_length = 0;
-int old_gen_mark = 0;
+byte boards[SIZE][MAX_BOARDS];
+unsigned int parents[MAX_BOARDS];
+unsigned int boards_length = 0;
+unsigned int old_gen_mark = 0;
 
 //0 is free space, index is eventual order disregarding space
-byte initial[] = {1,2,3,0,4,5,6,7,8};
+byte initial[] = {1,2,3,4,0,5,6,7,8};
 byte desired[] = {0,2,3,1,4,5,6,7,8};
 
-int bprint(byte * b){
+int bprint(const byte * b){
   //just gonna hardcode this one lads
   return printf("-------\n|%d %d %d|\n|%d %d %d|\n|%d %d %d|\n-------\n",
 		b[0],b[1],b[2],b[3],b[4],b[5],b[6],b[7],b[8]
 		);
+}
+
+void printpath(int index){
+  bprint(boards[index]);
+  if (index <= 0){
+    exit(EXIT_SUCCESS);
+  }
+  printpath(parents[index]);
 }
 
 int beq(byte * r, byte * l){//test if boards equal
@@ -30,7 +43,10 @@ int beq(byte * r, byte * l){//test if boards equal
 }
 
 int bz(const byte * b){//return free space of board
-  if(!b){puts("null"); return -1;}
+  if(!b){
+    dprintf("null\n");
+    return -1;
+  }
   int i = 0;
   while(b[i] && i<SIZE){
     i++;
@@ -39,19 +55,23 @@ int bz(const byte * b){//return free space of board
 }
 
 void bcpy(byte * dst, const byte * src){ //since boards always pass by reference, this fn is necessary.
-  if(!dst||!src){puts("null"); return;}
+  if(!dst||!src){
+    dprintf("null\n");
+    return;
+  }
+  dprintf("copying\n");
+  DOBUG(bprint(src);)
+  dprintf("to\n");
+  DOBUG(bprint(dst);)
   for(int i = 0; i<SIZE;i++){
     dst[i]=src[i];
   }
 }
 
-int bsmartinsert(byte * b){
+int bsmartinsert(byte * b, int parent){
   //returns 0 (false) if no insertion was made, new length (!=0, true) otherwise
   if(!b){
     return 0;
-  } else if(beq(b, desired)){
-    bprint(b);
-    exit(EXIT_SUCCESS);
   } else {
     int i = 0;
     while(i<boards_length){
@@ -59,10 +79,15 @@ int bsmartinsert(byte * b){
       i++;
     }
     if(boards_length>=MAX_BOARDS){
-      puts("boards length exceeded (this is theoretically impossible, check code correctness)");
+      dprintf("max boards exceeded");
+      dprintf("(theoretically impossible, check code correctness)");
       exit(EXIT_FAILURE);
     }
     bcpy(boards[i],b);
+    parents[i] = parent;
+    if(beq(b, desired)){
+      printpath(i);
+    }
     return ++boards_length;
   }
 }
@@ -101,12 +126,14 @@ void il(){ //il stands for "iterative loop".
   byte l[SIZE];
   byte r[SIZE];
   
-  while(old_gen_mark++ < boards_length){
+  while(old_gen_mark < boards_length){
+    dprintf("%d\n",old_gen_mark);
     make_moves(boards[old_gen_mark],u,d,l,r);
-    bsmartinsert(u);
-    bsmartinsert(d);
-    bsmartinsert(l);
-    bsmartinsert(r);
+    bsmartinsert(u, old_gen_mark);
+    bsmartinsert(d, old_gen_mark);
+    bsmartinsert(l, old_gen_mark);
+    bsmartinsert(r, old_gen_mark);
+    old_gen_mark++;
   }
 }
 
@@ -131,24 +158,28 @@ int assertions(){
   byte r[SIZE];
   byte rd[] = {1,2,3,4,5,0,6,7,8};
   make_moves(b,u,d,l,r);
-  bprint(u);
-  bprint(ud);
+  //bprint(u);
+  //bprint(ud);
   assert(beq(u,ud));
   assert(beq(d,dd));
   assert(beq(l,ld));
-  bprint(r);
-  bprint(rd);
+  //bprint(r);
+  //bprint(rd);
   assert(beq(r,rd));
-  
+ 
   return 1;
 }
 
 int main(int argc, char ** argv){
+  setbuf(stdout,NULL);
   assertions();
-  bsmartinsert(initial);
+  bsmartinsert(initial, -1);
   old_gen_mark = 0;
   boards_length = 1;
-  while(1){puts("loop!");il();}
+  while(1){
+    dprintf("loop!\n");
+    il();
+  }
 		      
   return EXIT_SUCCESS;
 }
