@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define DEBUG 0
+#define DEBUG 1
 #define dprintf(...) if(DEBUG){fprintf(stderr,__VA_ARGS__);}
 #define DOBUG(...) if(DEBUG){__VA_ARGS__;}
 
@@ -18,7 +18,7 @@ unsigned int old_gen_mark = 0;
 
 //0 is free space, index is eventual order disregarding space
 byte initial[] = {1,2,3,4,0,5,6,7,8};
-byte desired[] = {0,2,3,1,4,5,6,7,8};
+byte desired[] = {1,2,3,4,7,6,5,0,8};
 
 int bprint(const byte * b){
   //just gonna hardcode this one lads
@@ -28,7 +28,7 @@ int bprint(const byte * b){
 }
 
 void printpath(int index){
-  bprint(boards[index]);
+  bprint(&boards[0][index]);
   if (index <= 0){
     exit(EXIT_SUCCESS);
   }
@@ -44,22 +44,23 @@ int beq(byte * r, byte * l){//test if boards equal
 
 int bz(const byte * b){//return free space of board
   if(!b){
-    dprintf("null\n");
     return -1;
   }
-  int i = 0;
-  while(b[i] && i<SIZE){
-    i++;
+  for(int i = 0;i<SIZE; i++){
+    if(b[i]==0){
+      return i;
+    }
   }
-  return i;
+  dprintf("no zero in board\n");
+  return -2;
 }
 
-void bcpy(byte * dst, const byte * src){ //since boards always pass by reference, this fn is necessary.
+void bcpy(byte * dst, const byte * src){
   if(!dst||!src){
     dprintf("null\n");
     return;
   }
-  dprintf("copying\n");
+  dprintf("copying %lu to %lu\n", (unsigned long)src, (unsigned long)dst);
   DOBUG(bprint(src);)
   dprintf("to\n");
   DOBUG(bprint(dst);)
@@ -69,13 +70,14 @@ void bcpy(byte * dst, const byte * src){ //since boards always pass by reference
 }
 
 int bsmartinsert(byte * b, int parent){
-  //returns 0 (false) if no insertion was made, new length (!=0, true) otherwise
+  //returns 0 (false) if no insertion was made, new length otherwise
   if(!b){
     return 0;
   } else {
+    dprintf("bsmartinsert\n");
     int i = 0;
     while(i<boards_length){
-      if(beq(boards[i],b)){return 0;}
+      if(beq(&boards[0][i],b)){return 0;}
       i++;
     }
     if(boards_length>=MAX_BOARDS){
@@ -83,7 +85,8 @@ int bsmartinsert(byte * b, int parent){
       dprintf("(theoretically impossible, check code correctness)");
       exit(EXIT_FAILURE);
     }
-    bcpy(boards[i],b);
+    dprintf("inserting at board %d\n", i);
+    bcpy(&boards[0][i],b);
     parents[i] = parent;
     if(beq(b, desired)){
       printpath(i);
@@ -109,10 +112,12 @@ byte * make_move(const byte * old, byte * new, int from_index, int to_index){
     new[from_index] = old[to_index]; //move the non-zero back
     new[to_index] = old[from_index]; //put the zero in 
   }
+  DOBUG(bprint(new));
   return new;
 }
 
-void make_moves(const byte * old, byte * up, byte * down, byte * left, byte * right){//given a board, returns by pointer the result of moving the free space the indicated direction (or null if impossible)
+void make_moves(const byte * old, byte * up, byte * down, byte * left, byte * right){//given a board, returns by pointer the result of moving the free space the indicated direction (or the same board if impossible)
+  dprintf("make moves\n");
   int z = bz(old);
   make_move(old,up,z,z-WIDTH);
   make_move(old,down,z,z+WIDTH);
@@ -128,7 +133,7 @@ void il(){ //il stands for "iterative loop".
   
   while(old_gen_mark < boards_length){
     dprintf("%d\n",old_gen_mark);
-    make_moves(boards[old_gen_mark],u,d,l,r);
+    make_moves(&boards[0][old_gen_mark],u,d,l,r);
     bsmartinsert(u, old_gen_mark);
     bsmartinsert(d, old_gen_mark);
     bsmartinsert(l, old_gen_mark);
@@ -138,6 +143,9 @@ void il(){ //il stands for "iterative loop".
 }
 
 int assertions(){
+  dprintf("assertions\n");
+  DOBUG(bprint(&(boards[0][13])));
+  DOBUG(bprint(&(boards[0][14])));
   assert(beq(initial, initial));
   assert(beq(desired, desired));
   assert(!beq(initial, desired));
@@ -171,15 +179,12 @@ int assertions(){
 }
 
 int main(int argc, char ** argv){
-  setbuf(stdout,NULL);
   assertions();
   bsmartinsert(initial, -1);
   old_gen_mark = 0;
   boards_length = 1;
-  while(1){
-    dprintf("loop!\n");
-    il();
-  }
+  dprintf("loop!\n");
+  il();
 		      
   return EXIT_SUCCESS;
 }
