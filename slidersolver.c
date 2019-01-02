@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define DEBUG 1
+#define DEBUG 0
 #define dprintf(...) if(DEBUG){fprintf(stderr,__VA_ARGS__);}
 #define DOBUG(...) if(DEBUG){__VA_ARGS__;}
 
@@ -11,14 +11,14 @@
 #define SIZE HEIGHT*WIDTH
 typedef unsigned char byte;
 #define MAX_BOARDS 362880 //9 factorial
-byte boards[SIZE][MAX_BOARDS];
+byte boards[MAX_BOARDS][SIZE];
 unsigned int parents[MAX_BOARDS];
 unsigned int boards_length = 0;
 unsigned int old_gen_mark = 0;
 
 //0 is free space, index is eventual order disregarding space
-byte initial[] = {1,2,3,4,0,5,6,7,8};
-byte desired[] = {1,2,3,4,7,6,5,0,8};
+byte desired[] = {1,2,3,4,0,5,6,7,8}; //we actually work backwards from this in the code
+byte initial[] = {1,2,3,4,7,6,5,0,8}; //and try to find this
 
 int bprint(const byte * b){
   //just gonna hardcode this one lads
@@ -28,7 +28,7 @@ int bprint(const byte * b){
 }
 
 void printpath(int index){
-  bprint(&boards[0][index]);
+  bprint(boards[index]);
   if (index <= 0){
     exit(EXIT_SUCCESS);
   }
@@ -77,7 +77,7 @@ int bsmartinsert(byte * b, int parent){
     dprintf("bsmartinsert\n");
     int i = 0;
     while(i<boards_length){
-      if(beq(&boards[0][i],b)){return 0;}
+      if(beq(boards[i],b)){return 0;}
       i++;
     }
     if(boards_length>=MAX_BOARDS){
@@ -86,9 +86,9 @@ int bsmartinsert(byte * b, int parent){
       exit(EXIT_FAILURE);
     }
     dprintf("inserting at board %d\n", i);
-    bcpy(&boards[0][i],b);
+    bcpy(boards[i],b);
     parents[i] = parent;
-    if(beq(b, desired)){
+    if(beq(b, initial)){
       printpath(i);
     }
     return ++boards_length;
@@ -133,7 +133,7 @@ void il(){ //il stands for "iterative loop".
   
   while(old_gen_mark < boards_length){
     dprintf("%d\n",old_gen_mark);
-    make_moves(&boards[0][old_gen_mark],u,d,l,r);
+    make_moves(boards[old_gen_mark],u,d,l,r);
     bsmartinsert(u, old_gen_mark);
     bsmartinsert(d, old_gen_mark);
     bsmartinsert(l, old_gen_mark);
@@ -144,8 +144,8 @@ void il(){ //il stands for "iterative loop".
 
 int assertions(){
   dprintf("assertions\n");
-  DOBUG(bprint(&(boards[0][13])));
-  DOBUG(bprint(&(boards[0][14])));
+  DOBUG(bprint(boards[13]));
+  DOBUG(bprint(boards[14]));
   assert(beq(initial, initial));
   assert(beq(desired, desired));
   assert(!beq(initial, desired));
@@ -180,11 +180,10 @@ int assertions(){
 
 int main(int argc, char ** argv){
   assertions();
-  bsmartinsert(initial, -1);
+  bsmartinsert(desired, -1);
   old_gen_mark = 0;
   boards_length = 1;
   dprintf("loop!\n");
   il();
-		      
   return EXIT_SUCCESS;
 }
