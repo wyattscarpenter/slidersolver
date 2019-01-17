@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define DEBUG 0
+#define DEBUG 1
 #define dprintf(...) if(DEBUG){fprintf(stderr,__VA_ARGS__);}
 #define DOBUG(...) if(DEBUG){__VA_ARGS__;}
 
@@ -18,7 +18,38 @@ unsigned int old_gen_mark = 0;
 
 //0 is free space, index is eventual order disregarding space
 byte desired[] = {1,2,3,4,0,5,6,7,8}; //we actually work backwards from this in the code
-byte initial[] = {1,2,3,4,7,6,5,0,8}; //and try to find this
+byte initial[] = {1,2,3,4,7,6,5,8,0}; //and try to find this
+
+int bz(const byte * b){//return free space of board
+  for(int i = 0;i<SIZE; i++){
+    if(b[i]==0){
+      return i;
+    }
+  }
+  dprintf("no zero in board\n");
+  return -2;
+}
+
+int parity_of_taxicab(const byte * b){
+  return 1 & (bz(b)/HEIGHT + bz(b)%WIDTH); //haven't tested this
+}
+
+int parity_of_permutation(const byte * b){ //also untested
+  int par = 0;
+  for(int i = 0; i<SIZE;i++){
+    for(int j = 0; j<i;j++){
+      if(b[i]!= 0 && b[j]>b[i]){
+	par ^= 1;
+	break;
+      }
+    }
+  }
+  return par;
+}
+
+int invariant(const byte * b){ //should work, though I have make substitutions in the baking sense
+  return parity_of_permutation(b) +  parity_of_taxicab(b);
+}
 
 int bprint(const byte * b){
   //just gonna hardcode this one lads
@@ -40,19 +71,6 @@ int beq(byte * r, byte * l){//test if boards equal
     if(r[i]!=l[i]){return 0;}
   }
   return 1;
-}
-
-int bz(const byte * b){//return free space of board
-  if(!b){
-    return -1;
-  }
-  for(int i = 0;i<SIZE; i++){
-    if(b[i]==0){
-      return i;
-    }
-  }
-  dprintf("no zero in board\n");
-  return -2;
 }
 
 void bcpy(byte * dst, const byte * src){
@@ -144,11 +162,15 @@ void il(){ //il stands for "iterative loop".
 
 int assertions(){
   dprintf("assertions\n");
-  DOBUG(bprint(boards[13]));
-  DOBUG(bprint(boards[14]));
+  /*DOBUG(bprint(boards[13]));
+    DOBUG(bprint(boards[14]));*/
   assert(beq(initial, initial));
   assert(beq(desired, desired));
   assert(!beq(initial, desired));
+
+  dprintf("invariants of board (must be equal or puzzle is impossible): %d %d\n",
+	  invariant(initial), invariant(desired));
+  assert(invariant(initial) == invariant(desired));
   
   byte b[] = {1,2,3,4,0,5,6,7,8};
   byte c[SIZE];
