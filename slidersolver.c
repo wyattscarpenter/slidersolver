@@ -18,7 +18,7 @@ unsigned int old_gen_mark = 0;
 
 //0 is free space, index is eventual order disregarding space
 byte desired[] = {1,2,3,4,0,5,6,7,8}; //we actually work backwards from this in the code
-byte initial[] = {1,2,3,4,7,6,5,8,0}; //and try to find this
+byte initial[] = {1,2,3,4,7,6,5,0,8}; //and try to find this
 
 int bz(const byte * b){//return free space of board
   for(int i = 0;i<SIZE; i++){
@@ -30,8 +30,8 @@ int bz(const byte * b){//return free space of board
   return -2;
 }
 
-int parity_of_taxicab(const byte * b){
-  return 1 & (bz(b)/HEIGHT + bz(b)%WIDTH); //haven't tested this
+int parity_of_rownumber(const byte * b){
+  return 1 & (HEIGHT - bz(b)/HEIGHT); //haven't tested this
 }
 
 int parity_of_permutation(const byte * b){ //also untested
@@ -48,7 +48,7 @@ int parity_of_permutation(const byte * b){ //also untested
 }
 
 int invariant(const byte * b){ //should work, though I have make substitutions in the baking sense
-  return parity_of_permutation(b) +  parity_of_taxicab(b);
+  return parity_of_permutation(b) +  parity_of_rownumber(b);
 }
 
 int bprint(const byte * b){
