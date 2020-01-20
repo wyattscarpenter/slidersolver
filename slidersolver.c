@@ -138,59 +138,14 @@ void il(){ //il stands for "iterative loop".
     old_gen_mark++;
   }
 }
-/* //this consideration appears to be completely unnecessary?
-int parity_of_rownumber(const byte * b){
-  dprintf("begin parity_of_rownumber\n");
-  //this code was accurate for rownumber I guess but I need taxicab distance of 0 from corner instead I think?
-  //return 1 & (HEIGHT - bz(b)/HEIGHT); //haven't tested this
-  int h = bz(b)/HEIGHT;
-  int w = bz(b)%HEIGHT;
-  int par = (h+w) & 1;
-  dprintf("end parity_of_rownumber: %d\n", par);
-  return par;
-}
-*/
-int parity_of_permutation(const byte * b){
-  dprintf("begin parity_of_permutation\n");
-  byte c[SIZE];//copy board so we can mess it up
-  bcpy(c, b);
-  DOBUG(bprint(c));
-  int par = 0;
-  //the simplest way for me to determine parity of permutation is bubble sort :/
-  for(int i = 0; i < SIZE; i++){ //we don't even check if we made a swap, we just bubble sort SIZE times.
-    for(int j = 0; j<SIZE-1;j++){ //
-      if((c[j]!=0 && c[j+1]!=0 && c[j] > c[j+1]) ||
-	(c[j]==0 && c[j+1] < 5) || (c[j+1]==0 && c[j] >= 5)){
-        //swap, then toggle parity bit
-        int tmp = c[j];
-        c[j] = c[j+1];
-        c[j+1] = tmp;
-        par ^= 1;
-      }
-    }
-  }
-  DOBUG(bprint(c));
-  dprintf("end parity_of_permutation: %d\n", par);
-  return par;
-}
 
-/*
-int invariant(const byte * b){ //should work, though I have made substitutions in the baking sense
-  return parity_of_permutation(b) +  parity_of_rownumber(b);
-}
-*/
-
-int assertions(){
+int assertions(){ //just a bunch of tests of the integrity of my code
   dprintf("assertions\n");
   /*DOBUG(bprint(boards[13]));
     DOBUG(bprint(boards[14]));*/
   assert(beq(initial, initial));
   assert(beq(desired, desired));
   assert(!beq(initial, desired));
-
-  dprintf("invariants of board (must be equal or puzzle is impossible): %d %d\n",
-	  parity_of_permutation(initial), parity_of_permutation(desired));
-  assert(parity_of_permutation(initial) == parity_of_permutation(desired));
   
   byte b[] = {1,2,3,4,0,5,6,7,8};
   byte c[SIZE];
