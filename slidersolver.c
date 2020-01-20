@@ -18,7 +18,7 @@ unsigned int old_gen_mark = 0;
 
 //0 is free space, other numbers go in english reading order in the sorted board and disregard free space
 byte desired[] = {1,2,3,4,0,5,6,7,8}; //we actually work backwards from this in the code
-byte initial[] = {1,2,3,4,7,6,5,0,8}; //and try to find this
+byte initial[] = {8,2,3,4,7,6,5,0,1}; //and try to find this
 
 int bz(const byte * b){//return free space of board
   for(int i = 0;i<SIZE; i++){
