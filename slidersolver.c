@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define DEBUG 1
+#define DEBUG 0
 #define dprintf(...) if(DEBUG){fprintf(stderr,__VA_ARGS__);}
 #define DOBUG(...) if(DEBUG){__VA_ARGS__;}
 
@@ -16,7 +16,7 @@ unsigned int parents[MAX_BOARDS];
 unsigned int boards_length = 0;
 unsigned int old_gen_mark = 0;
 
-//0 is free space, index is eventual order disregarding space
+//0 is free space, other numbers go in english reading order in the sorted board and disregard free space
 byte desired[] = {1,2,3,4,0,5,6,7,8}; //we actually work backwards from this in the code
 byte initial[] = {1,2,3,4,7,6,5,0,8}; //and try to find this
 
@@ -28,27 +28,6 @@ int bz(const byte * b){//return free space of board
   }
   dprintf("no zero in board\n");
   return -2;
-}
-
-int parity_of_rownumber(const byte * b){
-  return 1 & (HEIGHT - bz(b)/HEIGHT); //haven't tested this
-}
-
-int parity_of_permutation(const byte * b){ //also untested
-  int par = 0;
-  for(int i = 0; i<SIZE;i++){
-    for(int j = 0; j<i;j++){
-      if(b[i]!= 0 && b[j]>b[i]){
-	par ^= 1;
-	break;
-      }
-    }
-  }
-  return par;
-}
-
-int invariant(const byte * b){ //should work, though I have make substitutions in the baking sense
-  return parity_of_permutation(b) +  parity_of_rownumber(b);
 }
 
 int bprint(const byte * b){
@@ -159,6 +138,47 @@ void il(){ //il stands for "iterative loop".
     old_gen_mark++;
   }
 }
+/* //this consideration appears to be completely unnecessary?
+int parity_of_rownumber(const byte * b){
+  dprintf("begin parity_of_rownumber\n");
+  //this code was accurate for rownumber I guess but I need taxicab distance of 0 from corner instead I think?
+  //return 1 & (HEIGHT - bz(b)/HEIGHT); //haven't tested this
+  int h = bz(b)/HEIGHT;
+  int w = bz(b)%HEIGHT;
+  int par = (h+w) & 1;
+  dprintf("end parity_of_rownumber: %d\n", par);
+  return par;
+}
+*/
+int parity_of_permutation(const byte * b){
+  dprintf("begin parity_of_permutation\n");
+  byte c[SIZE];//copy board so we can mess it up
+  bcpy(c, b);
+  DOBUG(bprint(c));
+  int par = 0;
+  //the simplest way for me to determine parity of permutation is bubble sort :/
+  for(int i = 0; i < SIZE; i++){ //we don't even check if we made a swap, we just bubble sort SIZE times.
+    for(int j = 0; j<SIZE-1;j++){ //
+      if((c[j]!=0 && c[j+1]!=0 && c[j] > c[j+1]) ||
+	(c[j]==0 && c[j+1] < 5) || (c[j+1]==0 && c[j] >= 5)){
+        //swap, then toggle parity bit
+        int tmp = c[j];
+        c[j] = c[j+1];
+        c[j+1] = tmp;
+        par ^= 1;
+      }
+    }
+  }
+  DOBUG(bprint(c));
+  dprintf("end parity_of_permutation: %d\n", par);
+  return par;
+}
+
+/*
+int invariant(const byte * b){ //should work, though I have made substitutions in the baking sense
+  return parity_of_permutation(b) +  parity_of_rownumber(b);
+}
+*/
 
 int assertions(){
   dprintf("assertions\n");
@@ -169,8 +189,8 @@ int assertions(){
   assert(!beq(initial, desired));
 
   dprintf("invariants of board (must be equal or puzzle is impossible): %d %d\n",
-	  invariant(initial), invariant(desired));
-  assert(invariant(initial) == invariant(desired));
+	  parity_of_permutation(initial), parity_of_permutation(desired));
+  assert(parity_of_permutation(initial) == parity_of_permutation(desired));
   
   byte b[] = {1,2,3,4,0,5,6,7,8};
   byte c[SIZE];
