@@ -57,7 +57,7 @@ void bcpy(byte * dst, const byte * src){
     dprintf("null\n");
     return;
   }
-  dprintf("copying %lu to %lu\n", (unsigned long)src, (unsigned long)dst);
+  dprintf("copying %p to %p\n", src, dst);
   DOBUG(bprint(src);)
   dprintf("to\n");
   DOBUG(bprint(dst);)
