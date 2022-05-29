@@ -1,2 +1,2 @@
 all:
-	gcc -Wall -pedantic slidersolver.c -o slidersolver
+	gcc -Wall -pedantic -O3 slidersolver.c -o slidersolver

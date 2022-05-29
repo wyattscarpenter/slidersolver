@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <limits.h>
 
 #define DEBUG 0
 #define dprintf(...) if(DEBUG){fprintf(stderr,__VA_ARGS__);}
@@ -9,10 +10,12 @@
 #define HEIGHT 3
 #define WIDTH 3
 #define SIZE HEIGHT*WIDTH
+#define RADIX 10 //we actually only need 9, since there are exactly 9 pieces and one is 0, but I've chosen 10 for clarity when printing the digits.
 typedef unsigned char byte;
 #define MAX_BOARDS 362880 //9 factorial
 byte boards[MAX_BOARDS][SIZE];
 unsigned int parents[MAX_BOARDS];
+unsigned char is_already_inserted[1000000000]; // 10^9, ie RADIX^SIZE
 unsigned int boards_length = 0;
 unsigned int old_gen_mark = 0;
 
@@ -34,10 +37,20 @@ int bprint(const byte * b){
   //just gonna hardcode this one lads
   return printf("-------\n|%d %d %d|\n|%d %d %d|\n|%d %d %d|\n-------\n",
 		b[0],b[1],b[2],b[3],b[4],b[5],b[6],b[7],b[8]
-		);
+	);
+}
+
+int bint(const byte * b){ //interprets a board as an integer, according to the RADIX
+  int total = 0;
+  for(int i = 0; i<SIZE;i++){
+    total *= RADIX;
+    total += b[i];
+  }
+  return total;
 }
 
 void printpath(int index){
+  dprintf("I'm trying to print the path, here");
   bprint(boards[index]);
   if (index <= 0){
     exit(EXIT_SUCCESS);
@@ -66,27 +79,18 @@ void bcpy(byte * dst, const byte * src){
   }
 }
 
-int bsmartinsert(byte * b, int parent){
-  //returns 0 (false) if no insertion was made, new length otherwise
-  if(!b){
+int bsmartinsert(byte * b, int parent){ //returns 0 (false) if no insertion was made, new length otherwise
+  if(!b || is_already_inserted[bint(b)]){ // if b is null, or has already been inserted
     return 0;
   } else {
+    is_already_inserted[bint(b)] = 1;
     dprintf("bsmartinsert\n");
-    int i = 0;
-    while(i<boards_length){
-      if(beq(boards[i],b)){return 0;}
-      i++;
-    }
-    if(boards_length>=MAX_BOARDS){
-      dprintf("max boards exceeded");
-      dprintf("(theoretically impossible, check code correctness)");
-      exit(EXIT_FAILURE);
-    }
-    dprintf("inserting at board %d\n", i);
-    bcpy(boards[i],b);
-    parents[i] = parent;
+    dprintf("inserting at board %d\n", boards_length);
+    bcpy(boards[boards_length],b);
+    parents[boards_length] = parent;
     if(beq(b, initial)){
-      printpath(i);
+      puts("You win!");
+      printpath(boards_length);
     }
     return ++boards_length;
   }
@@ -109,6 +113,7 @@ byte * make_move(const byte * old, byte * new, int from_index, int to_index){
     new[from_index] = old[to_index]; //move the non-zero back
     new[to_index] = old[from_index]; //put the zero in 
   }
+  dprintf("resultant:\n");
   DOBUG(bprint(new));
   return new;
 }
@@ -137,6 +142,7 @@ void il(){ //il stands for "iterative loop".
     bsmartinsert(r, old_gen_mark);
     old_gen_mark++;
   }
+  printf("You lose. old_gen_mark: %d, boards_length: %d\n", old_gen_mark, boards_length);
 }
 
 int assertions(){ //just a bunch of tests of the integrity of my code
@@ -171,13 +177,16 @@ int assertions(){ //just a bunch of tests of the integrity of my code
   //bprint(r);
   //bprint(rd);
   assert(beq(r,rd));
+  assert(bint(desired) == 123405678);
+  dprintf("UINT_MAX: %ud, MAX_BOARDS: %ud\n", UINT_MAX, MAX_BOARDS);
+  assert(MAX_BOARDS < UINT_MAX);
  
   return 1;
 }
 
 int main(int argc, char ** argv){
   assertions();
-  bsmartinsert(desired, -1);
+  bsmartinsert(desired, 0);
   old_gen_mark = 0;
   boards_length = 1;
   dprintf("loop!\n");
