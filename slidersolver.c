@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <limits.h>
+#include <ctype.h>
 
 #define DEBUG 0
 #define dprintf(...) if(DEBUG){fprintf(stderr,__VA_ARGS__);}
@@ -22,8 +23,8 @@ unsigned int old_gen_mark = 0;
 //0 is free space, other numbers go in english reading order in the sorted board and disregard free space
 //we actually work backwards from desired[] in the code
 //and try to find this initial[]
-#include "desired_and_initial.h"
-//#include "desired_and_initial2.h" //could solve this alternate puzzle instead.
+byte desired[] = {0,0,0, 0,0,0, 0,0,0};
+byte initial[] = {0,0,0, 0,0,0, 0,0,0};
 
 const byte neutral[] = {1,2,3,4,0,5,6,7,8};
 
@@ -188,12 +189,57 @@ int assertions(){ //just a bunch of tests of the integrity of my code
   return 1;
 }
 
+void print_usage_message_to_stderr() {
+  fprintf(stderr, "Usage: slidersolver initial_board desired_board\n\
+    Boards must be 3x3. (Whitespace is allowed in the arguments, but completely ignored.)\n\
+    Example (this is a valid board that will win):\n\
+      ./slidersolver 185423706 123456780\n\
+    Another example (also a valid board that will win) (this argument input style is at least valid in posix shell):\n\
+      ./slidersolver \\\n\
+                   '823\n\
+                    476\n\
+                    501'\\\n \
+                    \\\n\
+                   '123\n\
+                    405\n\
+                    678'\n"
+  );
+}
+
+#define EXIT_INVALID_ARGUMENTS 22
+
 int main(int argc, char ** argv){
+  //read input from command line, and parse it
+  if (argc != 3) {
+    print_usage_message_to_stderr();
+    exit(EXIT_INVALID_ARGUMENTS);
+  } else {
+    byte * fillable_array [] = {NULL, initial, desired};
+    for (int i = 1; i < argc; i++){
+      int real_j = 0;
+      for (int j = 0; argv[i][j]; j++){
+        char c = argv[i][j];
+        if (!isspace(c)) {
+          fillable_array[i][real_j] = c - '0';
+          real_j++;
+          dprintf("%c", c);
+        }
+      }
+      if (real_j != 9) {
+        print_usage_message_to_stderr();
+        printf("Reading input failed at argument %d (1-indexed), non-ignored (non-whitepace) character %d (0-indexed) which MIGHT be %c, if you didn't use any whitespace characters before it. Initial and desired boards, as read in:\n", i, real_j, argv[i][real_j]);
+        bprint(initial);
+        bprint(desired);
+        exit(EXIT_INVALID_ARGUMENTS);
+      }
+    }
+  }
+  
   assertions();
   bsmartinsert(desired, 0);
   old_gen_mark = 0;
   boards_length = 1;
   dprintf("loop!\n");
   il();
-  return EXIT_SUCCESS;
+  return EXIT_FAILURE;
 }

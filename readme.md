@@ -8,11 +8,9 @@ Open this [link](https://www.youtube.com/watch?v=MpN91wHAr1k) in another tab and
 
 ## Use
 
-Run the program. It will solve a 3x3 puzzle, and then print out a trace of the solution.
+Run the program like `./slidersolver 185423706 123456780` to solve a 3x3 puzzle, and then print out a trace of the solution. (0 is the free space.)
 
-To solve other slider puzzles, you must change the hardcoded values in `byte initial[]`, and perhaps `byte desired[]` in `desired_and_initial.h`.
-
-This is easy for [8-puzzles](https://en.wikipedia.org/wiki/9-puzzle), but for larger slider puzzles like the common [15-puzzle](https://en.wikipedia.org/wiki/15-puzzle) you'd have to modify several parts of the program, both constants and logic.
+This is made for [8-puzzles](https://en.wikipedia.org/wiki/9-puzzle), but for larger slider puzzles like the common [15-puzzle](https://en.wikipedia.org/wiki/15-puzzle) you'd have to modify several parts of the program, both constants and logic.
 
 ## Algorithmic Strategy
 
