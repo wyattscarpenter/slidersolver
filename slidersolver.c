@@ -20,8 +20,12 @@ unsigned int boards_length = 0;
 unsigned int old_gen_mark = 0;
 
 //0 is free space, other numbers go in english reading order in the sorted board and disregard free space
-byte desired[] = {1,2,3,4,0,5,6,7,8}; //we actually work backwards from this in the code
-byte initial[] = {8,2,3,4,7,6,5,0,1}; //and try to find this
+//we actually work backwards from desired[] in the code
+//and try to find this initial[]
+#include "desired_and_initial.h"
+//#include "desired_and_initial2.h" //could solve this alternate puzzle instead.
+
+const byte neutral[] = {1,2,3,4,0,5,6,7,8};
 
 int bz(const byte * b){//return free space of board
   for(int i = 0;i<SIZE; i++){
@@ -177,7 +181,7 @@ int assertions(){ //just a bunch of tests of the integrity of my code
   //bprint(r);
   //bprint(rd);
   assert(beq(r,rd));
-  assert(bint(desired) == 123405678);
+  assert(bint(neutral) == 123405678);
   dprintf("UINT_MAX: %ud, MAX_BOARDS: %ud\n", UINT_MAX, MAX_BOARDS);
   assert(MAX_BOARDS < UINT_MAX);
  
